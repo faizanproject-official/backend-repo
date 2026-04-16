@@ -18,6 +18,12 @@ Route::get('/user', function (Request $request) {
     return $request->user()->load('kycRecord');
 })->middleware('auth:sanctum');
 
+Route::get('/', function () {
+    return response()->json([
+        'status' => 'API working'
+    ]);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kyc/submit', [KycController::class, 'submit']);
     Route::get('/kyc/status', [KycController::class, 'status']);
