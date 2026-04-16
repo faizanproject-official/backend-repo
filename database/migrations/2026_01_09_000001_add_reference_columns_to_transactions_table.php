@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::table('transactions', function (Blueprint $table) {
             // Stores the Stripe PaymentIntent ID or unique transfer ID to prevent double-spending
             $table->string('transaction_reference')->nullable()->unique()->after('status');
-            
+
             // Stores 'stripe', 'system', 'manual'
             $table->string('payment_gateway')->default('system')->after('type');
-            
+
             // Add index for faster lookups
             $table->index(['user_id', 'type']);
         });
