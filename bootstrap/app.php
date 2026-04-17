@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // statefulApi() REMOVED - token-based auth ke liye zaroorat nahi
+        // CSRF exclude for API routes
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
         
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
