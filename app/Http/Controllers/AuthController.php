@@ -31,7 +31,7 @@ class AuthController extends Controller
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => strtolower($request->email),
-            'password' => $request->password,
+           'password' => Hash::make($request->password),
             'address' => $request->address ?? null,
             'country' => $request->country ?? null,
             'state' => $request->state ?? null,
@@ -104,7 +104,7 @@ class AuthController extends Controller
         }
 
         $user->forceFill([
-            'password' => $request->new_password
+           'password' => Hash::make($request->new_password),
         ])->setRememberToken(\Illuminate\Support\Str::random(60));
         
         $user->save();
