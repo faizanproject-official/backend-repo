@@ -42,38 +42,23 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        try {
-            $request->validate([
-                'email' => 'required|email',
-                'password' => 'required',
-            ]);
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
-            $email = trim(strtolower($request->email));
-            $password = $request->password;
+        $user = User::where('email', strtolower(trim($request->email)))->first();
 
-            $user = User::where('email', $email)->first();
-
-            if (!$user) {
-                return response()->json(['message' => 'Invalid credentials'], 401);
-            }
-
-            if (!Hash::check($password, $user->password)) {
-                return response()->json(['message' => 'Invalid credentials'], 401);
-            }
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'token' => $token,
-                'user' => $user
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Server error',
-                'error' => $e->getMessage()
-            ], 500);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $user
+        ]);
     }
 
     public function logout(Request $request)
@@ -96,10 +81,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid email or old password'], 401);
         }
 
-        $user->forceFill([
-            'password' => Hash::make($request->new_password),
-        ])->setRememberToken(\Illuminate\Support\Str::random(60));
-        
+        $user->password = Hash::make($request->new_password);
         $user->save();
 
         return response()->json(['message' => 'Password changed successfully']);
