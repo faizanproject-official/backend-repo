@@ -31,7 +31,7 @@ class AuthController extends Controller
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => strtolower($request->email),
-           'password' => Hash::make($request->password),
+            'password' => Hash::make($request->password),
             'address' => $request->address ?? null,
             'country' => $request->country ?? null,
             'state' => $request->state ?? null,
@@ -49,32 +49,52 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
 
-        $email = trim(strtolower($request->email));
-        $password = $request->password;
+            $email = trim(strtolower($request->email));
+            $password = $request->password;
 
-        \Illuminate\Support\Facades\Log::info('Login Attempt', [
-            'original_email' => $request->email,
-            'trimmed_email' => $email,
-            'password_length' => strlen($password)
-        ]);
+            \Illuminate\Support\Facades\Log::info('Login Attempt', [
+                'email' => $email,
+                'password_length' => strlen($password)
+            ]);
 
-        if (!Auth::attempt(['email' => $email, 'password' => $password])) {
-             \Illuminate\Support\Facades\Log::warning('Auth::attempt failed for ' . $email);
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            if (!Auth::attempt(['email' => $email, 'password' => $password])) {
+                \Illuminate\Support\Facades\Log::warning('Auth attempt failed for: ' . $email);
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+
+            $user = User::where('email', $email)->first();
+            
+            \Illuminate\Support\Facades\Log::info('User found', ['user_id' => $user->id]);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+            
+            \Illuminate\Support\Facades\Log::info('Token created successfully');
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Login Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'message' => 'Server error',
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-
-        $user = User::where('email', $email)->firstOrFail();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'token' => $token,
-            'user' => $user
-        ]);
     }
 
     /**
@@ -104,7 +124,7 @@ class AuthController extends Controller
         }
 
         $user->forceFill([
-           'password' => Hash::make($request->new_password),
+            'password' => Hash::make($request->new_password),
         ])->setRememberToken(\Illuminate\Support\Str::random(60));
         
         $user->save();
