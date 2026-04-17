@@ -6,13 +6,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    /**
-     * Handle user registration.
-     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -44,9 +40,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    /**
-     * Handle user login.
-     */
     public function login(Request $request)
     {
         try {
@@ -58,23 +51,17 @@ class AuthController extends Controller
             $email = trim(strtolower($request->email));
             $password = $request->password;
 
-            \Illuminate\Support\Facades\Log::info('Login Attempt', [
-                'email' => $email,
-                'password_length' => strlen($password)
-            ]);
+            $user = User::where('email', $email)->first();
 
-            if (!Auth::attempt(['email' => $email, 'password' => $password])) {
-                \Illuminate\Support\Facades\Log::warning('Auth attempt failed for: ' . $email);
+            if (!$user) {
                 return response()->json(['message' => 'Invalid credentials'], 401);
             }
 
-            $user = User::where('email', $email)->first();
-            
-            \Illuminate\Support\Facades\Log::info('User found', ['user_id' => $user->id]);
+            if (!Hash::check($password, $user->password)) {
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
 
             $token = $user->createToken('auth_token')->plainTextToken;
-            
-            \Illuminate\Support\Facades\Log::info('Token created successfully');
 
             return response()->json([
                 'token' => $token,
@@ -82,33 +69,19 @@ class AuthController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Login Error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
             return response()->json([
                 'message' => 'Server error',
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Handle user logout.
-     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
     }
 
-    /**
-     * Handle change password (public).
-     */
     public function changePassword(Request $request)
     {
         $request->validate([
