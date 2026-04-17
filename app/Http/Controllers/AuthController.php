@@ -42,21 +42,14 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
         $user = User::where('email', strtolower(trim($request->email)))->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         return response()->json([
-            'token' => $token,
+            'token' => $user->createToken('auth_token')->plainTextToken,
             'user' => $user
         ]);
     }
@@ -65,25 +58,5 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
-    }
-
-    public function changePassword(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'old_password' => 'required',
-            'new_password' => 'required|min:8|confirmed',
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->old_password, $user->password)) {
-            return response()->json(['message' => 'Invalid email or old password'], 401);
-        }
-
-        $user->password = Hash::make($request->new_password);
-        $user->save();
-
-        return response()->json(['message' => 'Password changed successfully']);
     }
 }
